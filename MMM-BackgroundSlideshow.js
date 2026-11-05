@@ -106,6 +106,8 @@ Module.register('MMM-BackgroundSlideshow', {
     resizeImages: false,
     maxWidth: 1920,
     maxHeight: 1080,
+    // if true (and resizeImages is true, backgroundSize is cover), images are cropped on the server to exactly maxWidth x maxHeight using backgroundPosition, so the browser does not need to scale them
+    cropImagesToScreen: false,
     // remove the file extension from image name
     imageInfoNoFileExt: false,
     googleMapsApiKey: '', // for goecoding position
