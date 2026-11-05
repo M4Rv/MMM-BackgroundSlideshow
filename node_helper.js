@@ -52,14 +52,90 @@ module.exports = NodeHelper.create({
 
   getImageUrl (image) {
     const imageId = this.getImageId(image.path);
-    const imageVersion = this.config.resizeImages
+    let imageVersion = this.config.resizeImages
       ? `${image.modified}-${this.config.maxWidth}x${this.config.maxHeight}`
       : `${image.modified}-original`;
+    if (this.shouldCropImages()) {
+      imageVersion += `-crop-${encodeURIComponent(this.config.backgroundPosition)}`;
+    }
     this.imageFiles.set(imageId, image.path);
     return `${imageRoute}/${imageId}?v=${imageVersion}`;
   },
 
-  sendImage (request, response) {
+  // crop on the server only where the browser would show the image with background-size: cover anyway
+  shouldCropImages () {
+    return Boolean(this.config.resizeImages &&
+      this.config.cropImagesToScreen &&
+      this.config.backgroundSize === 'cover' &&
+      !this.config.backgroundAnimationEnabled);
+  },
+
+  // converts a CSS background-position value into horizontal and vertical fractions (0 = left/top, 1 = right/bottom)
+  parseBackgroundPosition (position) {
+    const keywordFractions = {
+      left: 0,
+      top: 0,
+      center: 0.5,
+      right: 1,
+      bottom: 1
+    };
+    const toFraction = (value) => {
+      if (value.endsWith('%')) {
+        return Math.min(Math.max(parseFloat(value) / 100, 0), 1);
+      }
+      return keywordFractions[value];
+    };
+    const parts = String(position || 'center').trim()
+      .toLowerCase()
+      .split(/\s+/u);
+    let [horizontal, vertical = 'center'] = parts;
+    if (['top', 'bottom'].includes(horizontal) || ['left', 'right'].includes(vertical)) {
+      [horizontal, vertical] = [vertical, horizontal];
+    }
+    const x = toFraction(horizontal);
+    const y = toFraction(vertical);
+    return {
+      x: Number.isFinite(x)
+        ? x
+        : 0.5,
+      y: Number.isFinite(y)
+        ? y
+        : 0.5
+    };
+  },
+
+  // resize and crop the image to exactly maxWidth x maxHeight, like background-size: cover does in the browser
+  async getCoverCrop (imagePath) {
+    const targetWidth = parseInt(this.config.maxWidth, 10);
+    const targetHeight = parseInt(this.config.maxHeight, 10);
+    const metadata = await sharp(imagePath).metadata();
+    const rotated = metadata.orientation >= 5;
+    const width = rotated
+      ? metadata.height
+      : metadata.width;
+    const height = rotated
+      ? metadata.width
+      : metadata.height;
+    const scale = Math.max(targetWidth / width, targetHeight / height);
+    const resizedWidth = Math.max(targetWidth, Math.round(width * scale));
+    const resizedHeight = Math.max(targetHeight, Math.round(height * scale));
+    const position = this.parseBackgroundPosition(this.config.backgroundPosition);
+    return {
+      resize: {
+        width: resizedWidth,
+        height: resizedHeight,
+        fit: 'fill'
+      },
+      extract: {
+        left: Math.round((resizedWidth - targetWidth) * position.x),
+        top: Math.round((resizedHeight - targetHeight) * position.y),
+        width: targetWidth,
+        height: targetHeight
+      }
+    };
+  },
+
+  async sendImage (request, response) {
     const imagePath = this.imageFiles.get(request.params.imageId);
     if (!imagePath) {
       response.sendStatus(404);
@@ -68,24 +144,38 @@ module.exports = NodeHelper.create({
 
     response.set('Cache-Control', 'private, max-age=3600');
     if (this.config.resizeImages) {
+      const handleError = (error) => {
+        Log.error(`Error serving image "${imagePath}":`, error);
+        if (response.headersSent) {
+          response.destroy(error);
+        } else {
+          response.sendStatus(500);
+        }
+      };
+      let crop = null;
+      if (this.shouldCropImages()) {
+        try {
+          crop = await this.getCoverCrop(imagePath);
+        } catch (error) {
+          handleError(error);
+          return;
+        }
+      }
       response.type('image/jpeg');
-      sharp(imagePath)
-        .rotate()
-        .resize({
+      const image = sharp(imagePath).rotate();
+      if (crop) {
+        image.resize(crop.resize).extract(crop.extract);
+      } else {
+        image.resize({
           width: parseInt(this.config.maxWidth, 10),
           height: parseInt(this.config.maxHeight, 10),
           fit: 'inside',
-        })
+        });
+      }
+      image
         .keepMetadata()
         .jpeg({quality: 80})
-        .on('error', (error) => {
-          Log.error(`Error serving image "${imagePath}":`, error);
-          if (response.headersSent) {
-            response.destroy(error);
-          } else {
-            response.sendStatus(500);
-          }
-        })
+        .on('error', handleError)
         .pipe(response);
       return;
     }
