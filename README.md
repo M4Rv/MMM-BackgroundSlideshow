@@ -191,6 +191,14 @@ The following properties can be configured:
       </td>
     </tr>
     <tr>
+      <td><code>cropImagesToScreen</code></td>
+      <td>Boolean value, if true the resized images are also cropped on the server to exactly <code>maxWidth</code> x <code>maxHeight</code>, choosing the visible part with <code>backgroundPosition</code> just like the browser does for <code>backgroundSize: "cover"</code>. The browser then shows the image without scaling it, which makes image changes smoother on slow devices (e.g. a Raspberry Pi without GPU acceleration), especially for images with a different aspect ratio than the screen. Set <code>maxWidth</code> and <code>maxHeight</code> to the resolution of the screen. Only used if <code>resizeImages</code> is true, <code>backgroundSize</code> is <code>cover</code> and <code>backgroundAnimationEnabled</code> is false.<br>
+        <br><b>Example:</b> <code>true</code>
+        <br><b>Default value:</b> <code>false</code>
+        <br>This value is <b>OPTIONAL</b>
+      </td>
+    </tr>
+    <tr>
       <td><code>randomizeImageOrder</code></td>
       <td>Boolean value, if true will randomize the order of the images, otherwise use sortImagesBy and sortImagesDescending sorting by filename.<br>
         <br><b>Example:</b> <code>true</code>
