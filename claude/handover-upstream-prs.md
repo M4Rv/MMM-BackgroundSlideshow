@@ -19,13 +19,13 @@ Stand: 13.11.2026, Ende der Sitzung. Für eine neue Claude-Code-Cloud-Sitzung mi
 
 ## Stand der PRs (13.11.2026, abends)
 
-**Gemergt am 13.11.2026:** #210 (imageInfo-Validierung), #211 (Takeout-Duplikate), #212 (EXIF-Beschreibung), #213 (sharp bei Bedarf laden), #214 (sharp 0.35.5), dazu Dependabot #197, #200, #202, #205, #206, #215. `upstream/master` = `7862e19`; sharp `^0.35.5`, Lockfile mit `libc`-Feldern. `MMM-BackgroundSlideshow.js` ist auf master jetzt ESLint-sauber; `node_helper.js` hat weiterhin alte ESLint-Fehler. #201 (Dependabot sharp 0.35.4) ist geschlossen.
+**Gemergt am 13.11.2026:** #210 (imageInfo-Validierung), #211 (Takeout-Duplikate), #212 (EXIF-Beschreibung), #213 (sharp bei Bedarf laden), #214 (sharp 0.35.5), #216 (Notifications von/zu anderen Modulen: URL/URLS/UPDATE_IMAGE_LIST in `notificationReceived`, IMAGE_UPDATED/FILELIST per `sendNotification`; Fixes #170, #180, #126), dazu Dependabot #197, #200, #202, #205, #206, #215. `upstream/master` = `607e553`; sharp `^0.35.5`, Lockfile mit `libc`-Feldern. `MMM-BackgroundSlideshow.js` ist auf master ESLint-sauber; `node_helper.js` hat weiterhin 42 alte ESLint-Fehler. #201 (Dependabot sharp 0.35.4) ist geschlossen. Marvins Fork-`master` ist mit Upstream synchronisiert.
 
 **Offen:**
 
 | PR | Branch | Inhalt | Issue |
 |---|---|---|---|
-| [#216](https://github.com/darickc/MMM-BackgroundSlideshow/pull/216) | `fix/notifications-from-other-modules` | `BACKGROUNDSLIDESHOW_URL`, `_URLS`, `_UPDATE_IMAGE_LIST` wurden nur in `socketNotificationReceived` behandelt (kommt nur vom eigenen node_helper) → nach `notificationReceived` verschoben; `IMAGE_UPDATED` und `FILELIST` gehen jetzt per `sendNotification` an andere Module (README dokumentiert beide). Bewusst nicht wie der geschlossene #135 alles umleiten. Auf `7862e19` konfliktfrei mergebar, Test grün. | Fixes #170, #180, #126; erwähnt in #127, #175 |
+| [#217](https://github.com/darickc/MMM-BackgroundSlideshow/pull/217) | `fix/follow-symlinks` | `getFiles()` nutzte `lstatSync` → Symlinks auf Ordner/Bilder wurden still übersprungen. Jetzt `statSync` (folgt Links), Set mit `realpath` gegen Endlosschleifen/Doppelte, Symlinks werden nach regulären Einträgen verarbeitet (echter Pfad gewinnt), kaputte Links mit Warnung übersprungen. README unter `recursiveSubDirectories`. Getestet mit Linkbaum (`.`/`..`-Schleifen, kaputter Link, Doppel-Link); ohne Symlinks identisches Ergebnis. | „Related to #139“ (Reporter gefragt, ob Symlinks im Spiel sind) |
 
 Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode before display), beide am 05.11.2026. Der Maintainer merged kleine, saubere PRs zügig, mit Merge-Commits. Deshalb schließt ein `Fixes #n` in einer Commit-Message das Issue ebenfalls.
 
@@ -40,6 +40,7 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 - **#188:** Die Installation war laut Ausgabe erfolgreich; nachgefragt, was genau nicht geht. `brace-expansion` kommt nur über ESLint (dev), sharp-Lücke → #214, kein `npm audit fix --force`.
 - **#201** (Dependabot): Hinweis, dass 0.35.4 noch betroffen ist → #214.
 - **Zu #216 (entworfen, Marvin postet):** #127 (Status: NEXT/PREVIOUS/PAUSE/PLAY gehen seit #182, Rest → #216), #175 (`UPDATE_IMAGE_LIST` + MMM-ModuleScheduler funktioniert erst mit #216).
+- **Runde 3 (entworfen, Marvin postet):** #139 (Symlink-Vermutung → #217, Rückfrage nach Config/Log), #26 (`excludePaths` mit Default `['@eaDir']` seit `593db46`, Schließen vorgeschlagen), #110 (Maintainer will Übersetzer-Modul; PAUSE/PLAY gehen von anderen Modulen, Schließen vorgeschlagen), #173 (HEIC: prebuilt sharp liest nur AVIF, Chromium kein HEIC → selbst kompilieren oder vorher nach JPEG konvertieren / iPhone „Maximale Kompatibilität“).
 - **Bereits gelöste Issues, Schließen vorgeschlagen (entworfen, Marvin postet):** #80 und #25 (`horizontalGradient`, behoben 2021 in `823f83b`), #131 (`translations/fr.json` seit `a636e37`, `language: 'fr'`), #130 (README-Snippet existiert nicht mehr). **#164** ist Marvins eigenes Issue, behoben durch #165 → Marvin schließt es selbst.
 
 ## Nächste Schritte
@@ -56,7 +57,7 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 
 ## Weitere Ideen (nicht begonnen, erst mit Marvin abstimmen)
 
-- Noch nicht geprüfte Feature-Issues: #151 (Pause zwischen Bildern), #144 (nur Bilder der letzten x Tage), #110 (USER_PRESENCE), #26 (versteckte Ordner ausschließen).
+- Feature-Issues geprüft, nicht gebaut: **#144** (nur Bilder der letzten x Tage) – machbar als Option nach Datei-`mtime` (node_helper hat `modified` schon), aber mtime ≠ Aufnahmedatum nach Takeout/Kopieren; EXIF-Datum hieße jede Datei beim Scan öffnen. Workaround `rclone --max-age` steht im Issue. Nutzen mittel. **#151** (leere Pause zwischen Bildern) – greift in Timer/Überblendung ein, Nutzen gering. **#171** (Sättigung/Kontrast) – Support-Frage mit Screenshots, ausgelassen.
 - In `socketNotificationReceived` sind weitere Zweige toter Code (`BACKGROUNDSLIDESHOW_IMAGE_UPDATE`, `_NEXT`, `_PREVIOUS`, `_PAUSE`; der node_helper sendet sie nie). In #216 bewusst nicht angefasst, um den Diff klein zu halten.
 
 - `readdirSync` des ganzen Ordners pro Bild in `getNextImage()` (für die Takeout-JSON) könnte gecacht werden, wenn große Ordner langsam sind (im PR-Text zu #211 erwähnt).
