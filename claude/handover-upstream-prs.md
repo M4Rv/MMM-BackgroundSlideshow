@@ -17,15 +17,11 @@ Stand: 13.11.2026, Ende der Sitzung. Für eine neue Claude-Code-Cloud-Sitzung mi
 - Kein Test-Setup im Repo: Testskripte im Scratchpad halten, nicht committen, Ergebnisse im PR-Text beschreiben.
 - Vor neuen PRs prüfen, ob sie sich mit den offenen PRs konfliktfrei mergen lassen (Probe-Merge aller Branches nacheinander auf `upstream/master`). #211 und #213 kollidierten zunächst, weil beide hinter derselben Zeile in `node_helper.js` einfügten.
 
-## Stand der PRs (13.11.2026, abends)
+## Stand der PRs (13.11.2026, Sitzungsende)
 
-**Gemergt am 13.11.2026:** #210 (imageInfo-Validierung), #211 (Takeout-Duplikate), #212 (EXIF-Beschreibung), #213 (sharp bei Bedarf laden), #214 (sharp 0.35.5), #216 (Notifications von/zu anderen Modulen: URL/URLS/UPDATE_IMAGE_LIST in `notificationReceived`, IMAGE_UPDATED/FILELIST per `sendNotification`; Fixes #170, #180, #126), dazu Dependabot #197, #200, #202, #205, #206, #215. `upstream/master` = `607e553`; sharp `^0.35.5`, Lockfile mit `libc`-Feldern. `MMM-BackgroundSlideshow.js` ist auf master ESLint-sauber; `node_helper.js` hat weiterhin 42 alte ESLint-Fehler. #201 (Dependabot sharp 0.35.4) ist geschlossen. Marvins Fork-`master` ist mit Upstream synchronisiert.
+**Gemergt am 13.11.2026:** #210 (imageInfo-Validierung), #211 (Takeout-Duplikate), #212 (EXIF-Beschreibung), #213 (sharp bei Bedarf laden), #214 (sharp 0.35.5), #216 (Notifications von/zu anderen Modulen: URL/URLS/UPDATE_IMAGE_LIST in `notificationReceived`, IMAGE_UPDATED/FILELIST per `sendNotification`; Fixes #170, #180, #126), #217 (Symlinks beim Scannen folgen, `statSync` + `realpath`-Set gegen Schleifen; Related to #139), dazu Dependabot #197, #200, #202, #205, #206, #215. `upstream/master` = `0b66aed`; sharp `^0.35.5`, Lockfile mit `libc`-Feldern. `MMM-BackgroundSlideshow.js` ist auf master ESLint-sauber; `node_helper.js` hat weiterhin 42 alte ESLint-Fehler. #201 (Dependabot sharp 0.35.4) ist geschlossen.
 
-**Offen:**
-
-| PR | Branch | Inhalt | Issue |
-|---|---|---|---|
-| [#217](https://github.com/darickc/MMM-BackgroundSlideshow/pull/217) | `fix/follow-symlinks` | `getFiles()` nutzte `lstatSync` → Symlinks auf Ordner/Bilder wurden still übersprungen. Jetzt `statSync` (folgt Links), Set mit `realpath` gegen Endlosschleifen/Doppelte, Symlinks werden nach regulären Einträgen verarbeitet (echter Pfad gewinnt), kaputte Links mit Warnung übersprungen. README unter `recursiveSubDirectories`. Getestet mit Linkbaum (`.`/`..`-Schleifen, kaputter Link, Doppel-Link); ohne Symlinks identisches Ergebnis. | „Related to #139“ (Reporter gefragt, ob Symlinks im Spiel sind) |
+**Offen:** keine PRs von Marvin. Marvins Fork-`master` war vor dem Merge von #217 synchronisiert; ggf. erneut „Sync fork“.
 
 Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode before display), beide am 05.11.2026. Der Maintainer merged kleine, saubere PRs zügig, mit Merge-Commits. Deshalb schließt ein `Fixes #n` in einer Commit-Message das Issue ebenfalls.
 
@@ -48,12 +44,12 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 1. **Antworten verfolgen** (per WebFetch auf die Issue-/PR-Seiten):
    - **#207:** jn3vas Testergebnis abwarten. Klappt es, kann er/der Maintainer schließen. Klappt es nicht: prüfen, ob er das Modul aktualisiert hat (`git pull` + `npm install`), dann Browser-Konsole/Log ansehen. Eine IPTC-/XMP-Erweiterung ist für ihn nicht nötig, weil `ImageDescription` gefüllt ist.
    - **#168, #188, #198:** Rückmeldungen der Reporter abwarten.
-   - **Review-Kommentare des Maintainers** zu #216 umsetzen, auf denselben Branches im Fork (Force-Push nur nach Rücksprache mit Marvin).
+   - **Neue PRs:** bei Review-Kommentaren des Maintainers, auf denselben Branches im Fork (Force-Push nur nach Rücksprache mit Marvin).
 2. **Branch `feature/crop-images-to-screen` im Fork: bewusst nicht eingereicht.** 3 Commits vom 05.11.2026 (gut 100 Zeilen, v. a. `node_helper.js`): Option `cropImagesToScreen` schneidet bei `resizeImages` die Bilder serverseitig per sharp auf genau `maxWidth × maxHeight` zu; der Ausschnitt richtet sich nach `backgroundPosition` (Umrechnung von CSS-Angaben wie `"center 30%"`), wie bei `backgroundSize: 'cover'`. Greift nur mit `resizeImages`, `backgroundSize: 'cover'` und ohne Hintergrund-Animation.
    **Ergebnis auf dem Pi: kein Effekt.** Der stückweise Bildaufbau lag nicht am Skalieren im Browser, sondern daran, dass Electron ohne GPU in Software zeichnet und Zwischenstände anzeigt. Geholfen haben `decode()` vor dem Anzeigen (#209), die Überblendung und 4 Raster-Threads; der Crop-Test wurde auf dem Pi zurückgenommen.
    → **Branch am 13.11.2026 gelöscht** (von Marvin über die GitHub-Oberfläche; der Git-Proxy der Cloud-Sitzung lehnt Branch-Löschen mit 403 ab). Letzter Commit, falls er doch noch gebraucht wird: `4c804e50a16741f1ca221abf4407d8e698a7963b`.
 3. **Fork-`master`** ist deutlich hinter `upstream/master` (steht auf `0e2b0a7`). Nicht ohne Erlaubnis pushen; Marvin kann „Sync fork“ auf GitHub nutzen.
-4. **Jetzt fällig (#210–#214 sind gemergt):** Auf dem Pi das Modul per `~/update_mm.sh` aktualisieren (siehe `claude/handover-raspi.md`). Mit #214 kommt sharp 0.35.5, also läuft auch ein `npm install`.
+4. **Jetzt fällig (alle PRs bis #217 sind gemergt):** Auf dem Pi das Modul per `~/update_mm.sh` aktualisieren (siehe `claude/handover-raspi.md`). Mit #214 kommt sharp 0.35.5, also läuft auch ein `npm install`.
 
 ## Weitere Ideen (nicht begonnen, erst mit Marvin abstimmen)
 
