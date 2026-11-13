@@ -17,7 +17,7 @@ Stand: 13.11.2026, Ende der Sitzung. Für eine neue Claude-Code-Cloud-Sitzung mi
 - Kein Test-Setup im Repo: Testskripte im Scratchpad halten, nicht committen, Ergebnisse im PR-Text beschreiben.
 - Vor neuen PRs prüfen, ob sie sich mit den offenen PRs konfliktfrei mergen lassen (Probe-Merge aller Branches nacheinander auf `upstream/master`). #211 und #213 kollidierten zunächst, weil beide hinter derselben Zeile in `node_helper.js` einfügten.
 
-## Offene PRs von Marvin (alle 13.11.2026, alle konfliktfrei zusammen mergebar)
+## Offene PRs von Marvin (alle 13.11.2026, alle sechs konfliktfrei zusammen mergebar)
 
 | PR | Branch | Inhalt | Issue |
 |---|---|---|---|
@@ -26,6 +26,7 @@ Stand: 13.11.2026, Ende der Sitzung. Für eine neue Claude-Code-Cloud-Sitzung mi
 | [#212](https://github.com/darickc/MMM-BackgroundSlideshow/pull/212) | `feature/exif-description-fallback` | Ohne Takeout-Beschreibung wird EXIF `ImageDescription` genommen; UTF-8-Dekodierung (exif-js liest byteweise), Kamera-Platzhalter wie „OLYMPUS DIGITAL CAMERA“ werden verworfen, `excludeDescriptionsRegexps` gilt auch hier | #207, sobald bestätigt |
 | [#213](https://github.com/darickc/MMM-BackgroundSlideshow/pull/213) | `fix/load-sharp-on-demand` | sharp erst bei `resizeImages` laden (`loadSharp()`); schlägt das fehl, wird einmal ein Fehler geloggt und das Originalbild ausgeliefert | „Related to #198“ |
 | [#214](https://github.com/darickc/MMM-BackgroundSlideshow/pull/214) | `chore/bump-sharp-0.35.5` | sharp `^0.35.5` wegen hoher Sicherheitslücke (GHSA-rgj7-g3m4-5g8c, GHSA-wq5f-xc86-pv6w); nur sharp-Pakete im Lockfile | ersetzt Dependabot-PR #201 (0.35.4 ist noch betroffen) |
+| [#216](https://github.com/darickc/MMM-BackgroundSlideshow/pull/216) | `fix/notifications-from-other-modules` | `BACKGROUNDSLIDESHOW_URL`, `_URLS`, `_UPDATE_IMAGE_LIST` wurden nur in `socketNotificationReceived` behandelt (kommt nur vom eigenen node_helper) → nach `notificationReceived` verschoben; `IMAGE_UPDATED` und `FILELIST` gehen jetzt per `sendNotification` an andere Module (README dokumentiert beide). Bewusst nicht wie der geschlossene #135 alles umleiten. | Fixes #170, #180, #126; erwähnt in #127, #175 |
 
 Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode before display), beide am 05.11.2026. Der Maintainer merged kleine, saubere PRs zügig, mit Merge-Commits. Deshalb schließt ein `Fixes #n` in einer Commit-Message das Issue ebenfalls.
 
@@ -39,6 +40,8 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 - **#198:** sharp-Binaries für 32-Bit-ARM brauchen glibc ≥ 2.36 (Bookworm); empfohlen: Bookworm/64-Bit, der Workaround des Reporters, #213.
 - **#188:** Die Installation war laut Ausgabe erfolgreich; nachgefragt, was genau nicht geht. `brace-expansion` kommt nur über ESLint (dev), sharp-Lücke → #214, kein `npm audit fix --force`.
 - **#201** (Dependabot): Hinweis, dass 0.35.4 noch betroffen ist → #214.
+- **Zu #216 (entworfen, Marvin postet):** #127 (Status: NEXT/PREVIOUS/PAUSE/PLAY gehen seit #182, Rest → #216), #175 (`UPDATE_IMAGE_LIST` + MMM-ModuleScheduler funktioniert erst mit #216).
+- **Bereits gelöste Issues, Schließen vorgeschlagen (entworfen, Marvin postet):** #80 und #25 (`horizontalGradient`, behoben 2021 in `823f83b`), #131 (`translations/fr.json` seit `a636e37`, `language: 'fr'`), #130 (README-Snippet existiert nicht mehr). **#164** ist Marvins eigenes Issue, behoben durch #165 → Marvin schließt es selbst.
 
 ## Nächste Schritte
 
@@ -53,6 +56,9 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 4. **Nach dem Merge:** Auf dem Pi das Modul per `~/update_mm.sh` aktualisieren (siehe `claude/handover-raspi.md`). Mit #214 kommt sharp 0.35.5, also läuft auch ein `npm install`.
 
 ## Weitere Ideen (nicht begonnen, erst mit Marvin abstimmen)
+
+- Noch nicht geprüfte Feature-Issues: #151 (Pause zwischen Bildern), #144 (nur Bilder der letzten x Tage), #110 (USER_PRESENCE), #26 (versteckte Ordner ausschließen).
+- In `socketNotificationReceived` sind weitere Zweige toter Code (`BACKGROUNDSLIDESHOW_IMAGE_UPDATE`, `_NEXT`, `_PREVIOUS`, `_PAUSE`; der node_helper sendet sie nie). In #216 bewusst nicht angefasst, um den Diff klein zu halten.
 
 - `readdirSync` des ganzen Ordners pro Bild in `getNextImage()` (für die Takeout-JSON) könnte gecacht werden, wenn große Ordner langsam sind (im PR-Text zu #211 erwähnt).
 - Veralteter Code-Kommentar über `notificationReceived` (`MMM-BackgroundSlideshow.js` ~Z. 218) nennt noch `BACKGROUNDSLIDESHOW_PREV` statt `BACKGROUNDSLIDESHOW_PREVIOUS`; trivialer Doku-Fix.
