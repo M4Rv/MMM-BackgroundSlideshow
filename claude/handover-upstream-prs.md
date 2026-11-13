@@ -35,7 +35,7 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
 - **#186:** Hinweis auf `imageInfoDateFormat` (kam mit #189), Beispiel `'MMMM D, YYYY'`, Schließen vorgeschlagen.
 - **#177:** Seit #203 wird die ganze Info-Box samt Überschrift ausgeblendet, wenn nichts anzuzeigen ist. Schließen vorgeschlagen.
 - **#168:** PREVIOUS funktioniert seit #182. NEXT überspringt mehrere Bilder vermutlich, weil mehrere Clients verbunden sind: Jedes Frontend schickt `BACKGROUNDSLIDESHOW_NEXT_IMAGE`, und der gemeinsame node_helper ruft jedes Mal `getNextImage()` auf (`node_helper.js` ~Z. 725). Als Frage formuliert.
-- **#148:** Follow-up zu Marvins Kommentar vom 11.12.2024: #209 dekodiert vor dem Überblenden, dazu Hinweis auf `resizeImages`.
+- **#148:** Follow-up zu Marvins Kommentar vom 11.12.2024: #209 dekodiert vor dem Überblenden, dazu Hinweis auf `resizeImages`. Hintergrund für Rückfragen: Auf Marvins Pi lag das Ruckeln an Electrons Software-Rendering ohne GPU; geholfen haben #209, die Überblendung und 4 Raster-Threads (zuschneiden per `cropImagesToScreen` dagegen nicht, s. u.).
 - **#198:** sharp-Binaries für 32-Bit-ARM brauchen glibc ≥ 2.36 (Bookworm); empfohlen: Bookworm/64-Bit, der Workaround des Reporters, #213.
 - **#188:** Die Installation war laut Ausgabe erfolgreich; nachgefragt, was genau nicht geht. `brace-expansion` kommt nur über ESLint (dev), sharp-Lücke → #214, kein `npm audit fix --force`.
 - **#201** (Dependabot): Hinweis, dass 0.35.4 noch betroffen ist → #214.
@@ -46,7 +46,9 @@ Frühere, bereits gemergte PRs: #208 (`avoidRepeatsAcrossCycles`), #209 (decode 
    - **#207:** Steht jn3vas Beschreibung in `ImageDescription` → Marvin trägt `Fixes #207` in den Text von #212 ein. Steht sie nur in **IPTC** (`Caption-Abstract`) → #212 erweitern; exif-js liest IPTC schon mit (`EXIF.getIptcData(img)` bzw. `img.iptcdata.caption`, ebenfalls byteweise, also dieselbe UTF-8-Dekodierung). **XMP** wäre aufwendiger (`EXIF.enableXmp()`, XML parsen) → erst mit Marvin abstimmen.
    - **#168, #188, #198:** Rückmeldungen der Reporter abwarten.
    - **Review-Kommentare des Maintainers** zu #210–#214 umsetzen, auf denselben Branches im Fork (Force-Push nur nach Rücksprache mit Marvin).
-2. **Branch `feature/crop-images-to-screen` im Fork** (3 Commits vom 05.11.2026: Option `cropImagesToScreen`, Default, README): ist weder gemergt noch als PR bekannt. Bei Marvin nachfragen, ob das ein PR werden soll. Falls ja: auf `upstream/master` rebasen, Lint, Konflikte mit #210–#214 prüfen.
+2. **Branch `feature/crop-images-to-screen` im Fork: bewusst nicht eingereicht.** 3 Commits vom 05.11.2026 (gut 100 Zeilen, v. a. `node_helper.js`): Option `cropImagesToScreen` schneidet bei `resizeImages` die Bilder serverseitig per sharp auf genau `maxWidth × maxHeight` zu; der Ausschnitt richtet sich nach `backgroundPosition` (Umrechnung von CSS-Angaben wie `"center 30%"`), wie bei `backgroundSize: 'cover'`. Greift nur mit `resizeImages`, `backgroundSize: 'cover'` und ohne Hintergrund-Animation.
+   **Ergebnis auf dem Pi: kein Effekt.** Der stückweise Bildaufbau lag nicht am Skalieren im Browser, sondern daran, dass Electron ohne GPU in Software zeichnet und Zwischenstände anzeigt. Geholfen haben `decode()` vor dem Anzeigen (#209), die Überblendung und 4 Raster-Threads; der Crop-Test wurde auf dem Pi zurückgenommen.
+   → Nur als PR einreichen, wenn jemand einen messbaren Nutzen zeigt. Sonst kann der Branch bleiben oder gelöscht werden (Löschen nur auf Marvins ausdrücklichen Wunsch).
 3. **Fork-`master`** ist 6 Commits hinter `upstream/master` (steht auf `0e2b0a7`). Nicht ohne Erlaubnis pushen; Marvin kann „Sync fork“ auf GitHub nutzen.
 4. **Nach dem Merge:** Auf dem Pi das Modul per `~/update_mm.sh` aktualisieren (siehe `claude/handover-raspi.md`). Mit #214 kommt sharp 0.35.5, also läuft auch ein `npm install`.
 
